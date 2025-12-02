@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Wohnungsgenehmigungs-Kalkulator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
+    :root {
+      --bg: #f5f7f5;
+      --fg: #0c1a0c;
+      --accent: #2f9e44;
+      --accent-soft: #e2f6e8;
+      --border: #d0d7d0;
+      --radius: 10px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+    }
+
+    .container {
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 1.25rem 1rem 2rem;
+    }
+
+    h1 {
+      font-size: 1.4rem;
+      margin: 0 0 0.25rem;
+      text-align: center;
+    }
+
+    .subtitle {
+      font-size: 0.9rem;
+      color: #4b4f4b;
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+
+    .lang-switch {
+      display: flex;
+      justify-content: center;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .lang-btn {
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 0.2rem 0.7rem;
+      background: #8d8d8d; /* inaktiv: grau */
+      color: #ffffff;       /* inaktiv: weißer Text */
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+
+    .lang-btn.active {
+      background: var(--accent-soft);
+      border-color: var(--accent);
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .card {
+      background: white;
+      border-radius: var(--radius);
+      padding: 1rem;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+      border: 1px solid var(--border);
+    }
+
+    label {
+      display: block;
+      font-size: 0.9rem;
+      margin-top: 0.75rem;
+    }
+
+    select,
+    input[type="number"] {
+      width: 100%;
+      margin-top: 0.25rem;
+      padding: 0.55rem 0.5rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      font-size: 1rem;
+      background: #fff;
+    }
+
+    select:focus,
+    input[type="number"]:focus {
+      outline: 2px solid var(--accent-soft);
+      border-color: var(--accent);
+    }
+
+    .hint {
+      font-size: 0.75rem;
+      color: #6b6f6b;
+      margin-top: 0.2rem;
+    }
+
+    button {
+      margin-top: 1rem;
+      width: 100%;
+      padding: 0.7rem 1rem;
+      border-radius: 999px;
+      border: none;
+      background: var(--accent);
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    button:active {
+      opacity: 0.9;
+      transform: translateY(1px);
+    }
+
+    .result {
+      margin-top: 1rem;
+      padding: 0.9rem;
+      border-radius: var(--radius);
+      background: var(--accent-soft);
+      font-size: 0.9rem;
+    }
+
+    .status-ok {
+      border-left: 4px solid #2f9e44;
+    }
+
+    .status-warn {
+      border-left: 4px solid #f08c00;
+    }
+
+    .cta-btn {
+      margin-top: 0.75rem;
+      background: #1b5e20;
+    }
+
+    .disclaimer {
+      margin-top: 0.75rem;
+      font-size: 0.7rem;
+      color: #6b6f6b;
+    }
+
+    @media (max-width: 400px) {
+      .container {
+        padding: 0.75rem 0.5rem 1.5rem;
+      }
+
+      h1 {
+        font-size: 1.2rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1 id="t-title">Wohnungsgenehmigungs-Kalkulator</h1>
+    <p class="subtitle" id="t-subtitle">
+      Prüfe, ob deine Bruttokaltmiete voraussichtlich vom Jobcenter/Sozialamt übernommen werden kann (Richtwerte ab 01.10.2023, Berlin).
+    </p>
+
+    <div class="lang-switch">
+      <button class="lang-btn active" data-lang="de">Deutsch</button>
+      <button class="lang-btn" data-lang="ru">Русский</button>
+      <button class="lang-btn" data-lang="uk">Українська</button>
+    </div>
+
+    <div class="card">
+      <label>
+        <span id="t-persons-label">Personen in der Bedarfsgemeinschaft</span>
+        <select id="persons">
+          <option value="1" data-i18n-option="persons1">1 Person</option>
+          <option value="2" data-i18n-option="persons2">2 Personen</option>
+          <option value="3" data-i18n-option="persons3">3 Personen</option>
+          <option value="4" data-i18n-option="persons4">4 Personen</option>
+          <option value="5" data-i18n-option="persons5">5 Personen</option>
+          <option value="6" data-i18n-option="persons6">6 Personen oder mehr</option>
+        </select>
+      </label>
+
+      <label>
+        <span id="t-rent-label">Nettokaltmiete / Grundmiete (€)</span>
+        <input type="number" id="rent" min="0" step="1" inputmode="decimal" />
+        <span class="hint" id="t-rent-hint">Monatliche Grundmiete ohne Nebenkosten.</span>
+      </label>
+
+      <label>
+        <span id="t-nk-label">Kalte Nebenkosten (€)</span>
+        <input type="number" id="nk" min="0" step="1" inputmode="decimal" />
+        <span class="hint" id="t-nk-hint">Nur kalte Nebenkosten (Hausreinigung, Aufzug, Müll etc.), ohne Heizkosten.</span>
+      </label>
+
+      <label>
+        <span id="t-heat-label">Heizkosten (€)</span>
+        <input type="number" id="heat" min="0" step="1" inputmode="decimal" />
+        <span class="hint" id="t-heat-hint">Heizkosten werden in der Regel zusätzlich übernommen und sind für den Richtwert Bruttokaltmiete nicht entscheidend.</span>
+      </label>
+
+      <label>
+        <span id="t-energy-label">Energieklasse / Verbrauch (für Klimabonus)</span>
+        <select id="energy">
+          <option value="none" data-i18n-option="energy-none">unbekannt / kein Bonus</option>
+          <option value="bonus" data-i18n-option="energy-bonus">Klimabonus möglich (Endenergie &lt; 100 kWh/m²a)</option>
+        </select>
+      </label>
+
+      <label>
+        <span id="t-special-label">Besondere Situation</span>
+        <select id="special">
+          <option value="none" data-i18n-option="special-none">keine</option>
+          <option value="homeless" data-i18n-option="special-homeless">wohnungslos / Wohnheim / Notunterkunft</option>
+          <option value="violence" data-i18n-option="special-violence">häusliche Gewalt / Gefährdung</option>
+          <option value="hardship" data-i18n-option="special-hardship">sonstiger Härtefall (z.B. Gesundheit, Alleinerziehend)</option>
+        </select>
+      </label>
+
+      <button id="calc-btn">Berechnen</button>
+
+      <div id="result" class="result" style="display:none;"></div>
+
+      <div class="disclaimer" id="t-disclaimer">
+        Hinweis: Dies ist nur eine unverbindliche Orientierung nach den Berliner Richtwerten ab 01.10.2023, keine Rechtsberatung. Die endgültige Entscheidung treffen Jobcenter/Sozialamt.
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ======= Übersetzungen =======
+
+    const translations = {
+      de: {
+        title: "Wohnungsgenehmigungs-Kalkulator",
+        subtitle: "Prüfe, ob deine Bruttokaltmiete voraussichtlich vom Jobcenter/Sozialamt übernommen werden kann (Richtwerte ab 01.10.2023, Berlin).",
+        personsLabel: "Personen in der Bedarfsgemeinschaft",
+        persons1: "1 Person",
+        persons2: "2 Personen",
+        persons3: "3 Personen",
+        persons4: "4 Personen",
+        persons5: "5 Personen",
+        persons6: "6 Personen oder mehr",
+        rentLabel: "Nettokaltmiete / Grundmiete (€)",
+        rentHint: "Monatliche Grundmiete ohne Nebenkosten.",
+        nkLabel: "Kalte Nebenkosten (€)",
+        nkHint: "Nur kalte Nebenkosten (Hausreinigung, Aufzug, Müll etc.), ohne Heizkosten.",
+        heatLabel: "Heizkosten (€)",
+        heatHint: "Heizkosten werden in der Regel zusätzlich übernommen und sind für den Richtwert Bruttokaltmiete nicht entscheidend.",
+        energyLabel: "Energieklasse / Verbrauch (für Klimabonus)",
+        energyNone: "unbekannt / kein Bonus",
+        energyBonus: "Klimabonus möglich (Endenergie unter 100 kWh/m²a)",
+        specialLabel: "Besondere Situation",
+        specialNone: "keine",
+        specialHomeless: "wohnungslos / Wohnheim / Notunterkunft",
+        specialViolence: "häusliche Gewalt / Gefährdung",
+        specialHardship: "sonstiger Härtefall (z.B. Gesundheit, Alleinerziehend)",
+        calcButton: "Berechnen",
+        disclaimer: "Hinweis: Dies ist nur eine unverbindliche Orientierung nach den Berliner Richtwerten ab 01.10.2023, keine Rechtsberatung. Die endgültige Entscheidung treffen Jobcenter/Sozialamt.",
+        enteredBkm: (rent, nk, bkm, heat) => {
+          const parts = [];
+          parts.push(`Deine Eingaben: Nettokaltmiete ${rent.toFixed(2)} € + kalte Nebenkosten ${nk.toFixed(2)} € = Bruttokaltmiete ${bkm.toFixed(2)} €.`);
+          if (heat > 0) {
+            const total = bkm + heat;
+            parts.push(`Mit Heizkosten ergibt sich eine Gesamtmiete von ${total.toFixed(2)} € (für die Angemessenheit wird aber vor allem die Bruttokaltmiete geprüft).`);
+          }
+          return parts.join(" ");
+        },
+        statusOk: (bkm, limit) =>
+          `Deine Bruttokaltmiete von ${bkm.toFixed(2)} € liegt innerhalb des berechneten Rahmens (${limit.toFixed(2)} €). Die Wohnung ist voraussichtlich genehmigungsfähig.`,
+        statusWarn: (bkm, limit) =>
+          `Deine Bruttokaltmiete von ${bkm.toFixed(2)} € liegt über dem berechneten Rahmen (${limit.toFixed(2)} €). Es kann in besonderen Fällen trotzdem möglich sein (z.B. Wohnungslosigkeit, keine Alternativen, besondere Härte). Laut Richtlinien sind in Extremfällen Überschreitungen von bis zu 50 % möglich, wenn nachweislich keine angemessene Wohnung im Rahmen des Richtwertes + 20 % gefunden werden konnte.`,
+        statusMissingBkm: "Bitte gib mindestens Nettokaltmiete und kalte Nebenkosten ein, um die Bruttokaltmiete zu berechnen.",
+        cta: "Jetzt Hilfe beim Antrag anfragen",
+        baseText: (persons, base, socialBase) =>
+          `Grundrichtwert Bruttokaltmiete für ${persons} Person(en): ${base.toFixed(2)} €. (Sozialer Wohnungsbau: ca. ${socialBase.toFixed(2)} €)`,
+        cbText: (cb, limit) =>
+          `+ Klimabonus: ${cb.toFixed(2)} € → Zwischensumme: ${limit.toFixed(2)} €`,
+        plus20: (extra, limit) =>
+          `+ 20 % Zuschlag wegen besonderer Situation (z.B. Wohnungslosigkeit / häusliche Gewalt): +${extra.toFixed(2)} € → ${limit.toFixed(2)} €`,
+        plus10: (extra, limit) =>
+          `+ 10 % Härtefallzuschlag (z.B. Alleinerziehend, Gesundheit, soziale Bezüge): +${extra.toFixed(2)} € → ${limit.toFixed(2)} €`
+      },
+      ru: {
+        title: "Калькулятор одобрения квартиры",
+        subtitle: "Оценка, может ли Bruttokaltmiete быть ориентировочно одобрена Jobcenter/Sozialamt (Берлин, с 01.10.2023).",
+        personsLabel: "Количество человек в Bedarfsgemeinschaft",
+        persons1: "1 человек",
+        persons2: "2 человека",
+        persons3: "3 человека",
+        persons4: "4 человека",
+        persons5: "5 человек",
+        persons6: "6 человек или больше",
+        rentLabel: "Nettokaltmiete / Grundmiete (€)",
+        rentHint: "Ежемесячная базовая аренда без Nebenkosten.",
+        nkLabel: "Холодные Nebenkosten (€)",
+        nkHint: "Только холодные Nebenkosten (уборка дома, лифт, мусор и т.п.), без отопления.",
+        heatLabel: "Расходы на отопление (€)",
+        heatHint: "Расходы на отопление обычно оплачиваются дополнительно и не входят в предел Bruttokaltmiete.",
+        energyLabel: "Энергоэффективность (для Klimabonus)",
+        energyNone: "неизвестно / без бонуса",
+        energyBonus: "Klimabonus возможен (Endenergie &lt; 100 kWh/m²a)",
+        specialLabel: "Особая ситуация",
+        specialNone: "нет",
+        specialHomeless: "бездомность / Wohnheim / Notunterkunft",
+        specialViolence: "домашнее насилие / угроза",
+        specialHardship: "иная тяжёлая ситуация (здоровье, одиночное воспитание и др.)",
+        calcButton: "Рассчитать",
+        disclaimer: "Важно: это только ориентировочный расчёт по берлинским Richtwert с 01.10.2023, не юридическая консультация. Окончательное решение принимает Jobcenter/Sozialamt.",
+        enteredBkm: (rent, nk, bkm, heat) => {
+          const parts = [];
+          parts.push(`Ваши данные: Nettokaltmiete ${rent.toFixed(2)} € + холодные Nebenkosten ${nk.toFixed(2)} € = Bruttokaltmiete ${bkm.toFixed(2)} €.`);
+          if (heat > 0) {
+            const total = bkm + heat;
+            parts.push(`С учётом отопления общая сумма аренды составляет ${total.toFixed(2)} € (для оценки пригодности в первую очередь важна Bruttokaltmiete).`);
+          }
+          return parts.join(" ");
+        },
+        statusOk: (bkm, limit) =>
+          `Ваша Bruttokaltmiete ${bkm.toFixed(2)} € не превышает расчётный предел (${limit.toFixed(2)} €). Квартира, скорее всего, может быть одобрена.`,
+        statusWarn: (bkm, limit) =>
+          `Ваша Bruttokaltmiete ${bkm.toFixed(2)} € выше расчётного предела (${limit.toFixed(2)} €). В особых случаях одобрение всё равно возможно (бездомность, отсутствие альтернатив, тяжёлый случай). В исключительных ситуациях Richtlinien допускают до 50 % превышения, если документально подтверждено, что подходящее жильё в пределах Richtwert + 20 % не было найдено.`,
+        statusMissingBkm: "Пожалуйста, введите как минимум Nettokaltmiete и холодные Nebenkosten, чтобы рассчитать Bruttokaltmiete.",
+        cta: "Получить помощь с заявлением",
+        baseText: (persons, base, socialBase) =>
+          `Базовый предел Bruttokaltmiete для ${persons} чел.: ${base.toFixed(2)} €. (Соц. жильё: примерно ${socialBase.toFixed(2)} €)`,
+        cbText: (cb, limit) =>
+          `+ Klimabonus: ${cb.toFixed(2)} € → промежуточно: ${limit.toFixed(2)} €`,
+        plus20: (extra, limit) =>
+          `+ 20 % надбавка из-за особой ситуации (бездомность / домашнее насилие): +${extra.toFixed(2)} € → ${limit.toFixed(2)} €`,
+        plus10: (extra, limit) =>
+          `+ 10 % надбавка как тяжёлый случай (здоровье, одиночное воспитание, соц. связи): +${extra.toFixed(2)} € → ${limit.toFixed(2)} €`
+      },
+      uk: {
+        title: "Калькулятор схвалення квартири",
+        subtitle: "Орієнтовно перевір, чи може Bruttokaltmiete бути прийнята Jobcenter/Sozialamt (Берлін, з 01.10.2023).",
+        personsLabel: "Кількість осіб у Bedarfsgemeinschaft",
+        persons1: "1 особа",
+        persons2: "2 особи",
+        persons3: "3 особи",
+        persons4: "4 особи",
+        persons5: "5 осіб",
+        persons6: "6 осіб або більше",
+        rentLabel: "Nettokaltmiete / Grundmiete (€)",
+        rentHint: "Щомісячна базова оренда без Nebenkosten.",
+        nkLabel: "Холодні Nebenkosten (€)",
+        nkHint: "Лише холодні Nebenkosten (прибирання, ліфт, сміття тощо), без опалення.",
+        heatLabel: "Витрати на опалення (€)",
+        heatHint: "Витрати на опалення зазвичай оплачуються додатково і не входять до ліміту Bruttokaltmiete.",
+        energyLabel: "Клас енергоефективності (для Klimabonus)",
+        energyNone: "невідомо / без бонусу",
+        energyBonus: "Klimabonus можливий (Endenergie &lt; 100 kWh/m²a)",
+        specialLabel: "Особлива ситуація",
+        specialNone: "немає",
+        specialHomeless: "без житла / Wohnheim / Notunterkunft",
+        specialViolence: "домашнє насильство / загроза",
+        specialHardship: "інший тяжкий випадок (здоров'я, одиноке виховання тощо)",
+        calcButton: "Розрахувати",
+        disclaimer: "Це лише орієнтовний розрахунок на основі берлінських Richtwerte з 01.10.2023, не юридична консультація. Остаточне рішення приймає Jobcenter/Sozialamt.",
+        enteredBkm: (rent, nk, bkm, heat) => {
+          const parts = [];
+          parts.push(`Ваші дані: Nettokaltmiete ${rent.toFixed(2)} € + холодні Nebenkosten ${nk.toFixed(2)} € = Bruttokaltmiete ${bkm.toFixed(2)} €.`);
+          if (heat > 0) {
+            const total = bkm + heat;
+            parts.push(`З урахуванням опалення загальна оренда становить ${total.toFixed(2)} € (для оцінки придатності в першу чергу важлива Bruttokaltmiete).`);
+          }
+          return parts.join(" ");
+        },
+        statusOk: (bkm, limit) =>
+          `Ваша Bruttokaltmiete ${bkm.toFixed(2)} € в межах розрахованого ліміту (${limit.toFixed(2)} €). Квартиру, ймовірно, можуть схвалити.`,
+        statusWarn: (bkm, limit) =>
+          `Ваша Bruttokaltmiete ${bkm.toFixed(2)} € перевищує розрахований ліміт (${limit.toFixed(2)} €). У виняткових випадках схвалення все одно можливе (без житла, відсутність альтернатив, тяжкий випадок). Згідно з Richtlinien, у крайніх ситуаціях можливе перевищення до 50 %, якщо доведено, що відповідне житло в межах ліміту + 20 % знайти не вдалося.`,
+        statusMissingBkm: "Будь ласка, введіть щонайменше Nettokaltmiete та холодні Nebenkosten, щоб розрахувати Bruttokaltmiete.",
+        cta: "Отримати допомогу із заявою",
+        baseText: (persons, base, socialBase) =>
+          `Базовий ліміт Bruttokaltmiete для ${persons} ос.: ${base.toFixed(2)} €. (Соціальне житло: приблизно ${socialBase.toFixed(2)} €)`,
+        cbText: (cb, limit) =>
+          `+ Klimabonus: ${cb.toFixed(2)} € → проміжний підсумок: ${limit.toFixed(2)} €`,
+        plus20: (extra, limit) =>
+          `+ 20 % надбавка через особливу ситуацію (без житла / домашнє насильство): +${extra.toFixed(2)} € → ${limit.toFixed(2)} €`,
+        plus10: (extra, limit) =>
+          `+ 10 % надбавка як тяжкий випадок (здоров'я, одиноке виховання, соц.зв'язки): +${extra.toFixed(2)} € → ${limit.toFixed(2)} €`
+      }
+    };
+
+    let currentLang = "de";
+
+    function applyTranslations() {
+      const t = translations[currentLang];
+
+      document.getElementById("t-title").textContent = t.title;
+      document.getElementById("t-subtitle").textContent = t.subtitle;
+      document.getElementById("t-persons-label").textContent = t.personsLabel;
+
+      document.getElementById("t-rent-label").textContent = t.rentLabel;
+      document.getElementById("t-rent-hint").textContent = t.rentHint;
+      document.getElementById("t-nk-label").textContent = t.nkLabel;
+      document.getElementById("t-nk-hint").textContent = t.nkHint;
+      document.getElementById("t-heat-label").textContent = t.heatLabel;
+      document.getElementById("t-heat-hint").textContent = t.heatHint;
+
+      document.getElementById("t-energy-label").textContent = t.energyLabel;
+      document.getElementById("t-special-label").textContent = t.specialLabel;
+      document.getElementById("calc-btn").textContent = t.calcButton;
+      document.getElementById("t-disclaimer").textContent = t.disclaimer;
+
+      // Optionen
+      const optMap = {
+        "persons1": t.persons1,
+        "persons2": t.persons2,
+        "persons3": t.persons3,
+        "persons4": t.persons4,
+        "persons5": t.persons5,
+        "persons6": t.persons6,
+        "energy-none": t.energyNone,
+        "energy-bonus": t.energyBonus,
+        "special-none": t.specialNone,
+        "special-homeless": t.specialHomeless,
+        "special-violence": t.specialViolence,
+        "special-hardship": t.specialHardship
+      };
+
+      document.querySelectorAll("[data-i18n-option]").forEach(el => {
+        const key = el.getAttribute("data-i18n-option");
+        if (optMap[key]) el.textContent = optMap[key];
+      });
+    }
+
+    document.querySelectorAll(".lang-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const lang = btn.getAttribute("data-lang");
+        currentLang = lang;
+        document.querySelectorAll(".lang-btn").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        applyTranslations();
+      });
+    });
+
+    applyTranslations();
+
+    // ======= Richtwerte & Berechnungslogik =======
+
+    function getBaseLimits(persons) {
+      const p = Math.max(1, persons);
+
+      const baseTable = {
+        1: 449.00,
+        2: 543.40,
+        3: 668.80,
+        4: 752.40,
+        5: 903.72
+      };
+      const socialTable = {
+        1: 494.00,
+        2: 598.00,
+        3: 736.00,
+        4: 828.00,
+        5: 994.50
+      };
+      const extraBasePerPerson = 106.32;
+      const extraSocialPerPerson = 117.00;
+
+      let base, socialBase;
+
+      if (p <= 5) {
+        base = baseTable[p];
+        socialBase = socialTable[p];
+      } else {
+        const extraCount = p - 5;
+        base = baseTable[5] + extraBasePerPerson * extraCount;
+        socialBase = socialTable[5] + extraSocialPerPerson * extraCount;
+      }
+
+      return { base, socialBase };
+    }
+
+    function getClimateBonus(persons) {
+      const p = Math.max(1, persons);
+      const baseBonusTable = {
+        1: 25.00,
+        2: 32.50,
+        3: 40.00,
+        4: 45.00,
+        5: 51.00
+      };
+      const extraPerPerson = 6.00;
+
+      if (p <= 5) {
+        return baseBonusTable[p];
+      } else {
+        const extraCount = p - 5;
+        return baseBonusTable[5] + extraPerPerson * extraCount;
+      }
+    }
+
+    const calcBtn = document.getElementById("calc-btn");
+    const resultDiv = document.getElementById("result");
+
+    calcBtn.addEventListener("click", () => {
+      const t = translations[currentLang];
+
+      let persons = parseInt(document.getElementById("persons").value, 10);
+      if (persons === 6) {
+        persons = 6; // 6 oder mehr – konservativ
+      }
+
+      const rent = parseFloat(document.getElementById("rent").value || "0");
+      const nk = parseFloat(document.getElementById("nk").value || "0");
+      const heat = parseFloat(document.getElementById("heat").value || "0");
+      const bkm = rent + nk;
+
+      const limits = getBaseLimits(persons);
+      let limit = limits.base;
+      const socialBase = limits.socialBase;
+
+      const msgParts = [];
+
+      if (bkm > 0) {
+        msgParts.push(t.enteredBkm(rent, nk, bkm, heat));
+      }
+
+      msgParts.push(t.baseText(persons, limits.base, socialBase));
+
+      if (document.getElementById("energy").value === "bonus") {
+        const cb = getClimateBonus(persons);
+        limit += cb;
+        msgParts.push(t.cbText(cb, limit));
+      }
+
+      const special = document.getElementById("special").value;
+
+      if (special === "homeless" || special === "violence") {
+        const extra20 = limit * 0.2;
+        limit += extra20;
+        msgParts.push(t.plus20(extra20, limit));
+      }
+
+      if (special === "hardship") {
+        const extra10 = limit * 0.1;
+        limit += extra10;
+        msgParts.push(t.plus10(extra10, limit));
+      }
+
+      let statusText;
+      let statusClass = "status-ok";
+
+      if (!bkm || bkm <= 0) {
+        statusText = t.statusMissingBkm;
+        statusClass = "status-warn";
+      } else if (bkm <= limit) {
+        statusText = t.statusOk(bkm, limit);
+      } else {
+        statusText = t.statusWarn(bkm, limit);
+        statusClass = "status-warn";
+      }
+
+      const ctaUrl = "https://sites.google.com/view/antrag-hilfe-berlin/formular";
+
+      resultDiv.className = "result " + statusClass;
+      resultDiv.style.display = "block";
+      resultDiv.innerHTML = `
+        <p>${msgParts.join("<br>")}</p>
+        <p><strong>${statusText}</strong></p>
+        <button class="cta-btn" type="button" id="cta-btn">
+          ${t.cta}
+        </button>
+      `;
+
+      const ctaBtn = document.getElementById("cta-btn");
+      ctaBtn.addEventListener("click", () => {
+        if (typeof gtag === "function") {
+          gtag("event", "kalkulator_cta_click", {
+            "event_category": "kalkulator",
+            "event_label": currentLang
+          });
+        }
+        window.open(ctaUrl, "_blank");
+      });
+
+      if (typeof gtag === "function") {
+        gtag("event", "kalkulator_berechnung", {
+          "event_category": "kalkulator",
+          "event_label": currentLang
+        });
+      }
+    });
+  </script>
+</body>
+</html>
